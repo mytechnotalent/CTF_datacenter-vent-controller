@@ -35,7 +35,8 @@ every vent command is sealed with XChaCha20-Poly1305 under an Argon2id field key
 the anti-replay sequence window is stateful, and the authenticated state tag is
 real. The locker does not break the cipher and never touches it. It forces the
 vent closed, masks the true state on the LCD as maintenance, unlocks only on a
-magic release token, and programs a lock marker into a reserved flash sector so
+magic release token (a path the shipped image compiles out), and programs a lock
+marker into a reserved flash sector so
 it comes back after a reflash. Operative **NIGHTINGALE** pulled the compromised
 image off the plant and then went quiet.
 
@@ -291,7 +292,7 @@ sector that holds nothing else.
 | -------- | ------ |
 | Forced close | the inlined lock gate in `implant_init` arms the lock; `monitor_open_target` returns false and the damper is driven closed regardless of the guarded vent state |
 | Maintenance mask | `implant_mask_active` returns true while locked, and `monitor_state_text` returns `MAINT`, so the LCD renders `ST:MAINT` |
-| Magic release token | `VAULT-RELEASE-2026`, exactly `18` bytes; anything else, a null pointer, or an attached probe leaves the vent locked |
+| Magic release token | `VAULT-RELEASE-2026`, exactly `18` bytes; the release path is dead-stripped from the shipped image (no firmware caller), so the token cannot release the vent |
 | Re-assert interval | every `VENT_IMPLANT_TICK_INTERVAL` (`4`) ticks while armed and unprobed |
 | Lock marker | `implant_init` reads marker `0x4C` from `0x103FF000`; a present marker re-arms the lock on every boot |
 | Reserved-sector write | on the first run the inlined `implant_infect` erases the sector and programs `0x4C` through `flash_range_erase` and `flash_range_program` |

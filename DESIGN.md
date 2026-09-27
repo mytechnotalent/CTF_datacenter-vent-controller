@@ -60,7 +60,7 @@ Module `include/implant.h` + `src/implant.c`, only under `SANDBOX_ONLY`:
 - **Lock.** Force the vent closed and mask the true state as "maintenance".
 - **Release condition.** Unlock only on a magic release token (or never).
 - **Lock marker.** Program a lock marker into the reserved flash sector
-  (`DATACENTER_IMPLANT_RESERVE_ADDR` 0x103FF000) with the real flash API.
+  (`VENT_IMPLANT_RESERVE_ADDR` 0x103FF000) with the real flash API.
 - **Anti-debug.** Reads DHCSR and behaves benignly under a probe.
 - **Neutralization.** Break the lock, restore the vent, clear the marker.
 

@@ -210,8 +210,8 @@ gate is at file offset `0xA33B` (VA `0x1000A33B`). The corrected image is:
 ```
 
 **Instruction decode.** `ldr r0, [pc, #108]` loads the lock gate address
-`0x20013CF2` (literal at `0x1000A36C`), and `ldrb r0, [r0, #0]` reads the gate
-into `r0` at `0x1000A316`. `implant_reset_state` runs first: `str r3, [r5, #0]`
+`0x20013CF2` (literal at `0x1000A394`), and `ldrb r0, [r0, #0]` reads the gate
+into `r0` at `0x1000A32E`. `implant_reset_state` runs first: `str r3, [r5, #0]`
 clears the lock count at `0x200136F0`, `str r3, [r4, #0]` clears the tick counter
 at `0x200136F4`, `strb r3, [r1, #0]` clears the active flag at `0x20013CF1`, and
 `strb r3, [r2, #0]` clears the locked flag at `0x20013CF3`. The branch at
@@ -266,10 +266,13 @@ envelope can see or stop a local module that decides not to move the damper.
 - The lock gate is at `0x20013CF2`. The active flag is at `0x20013CF1`, the
   locked flag at `0x20013CF3`, the tick counter at `0x200136F4`, and the lock
   count at `0x200136F0`. `implant_lock_active` reads the locked latch at
-  `0x20013CF3` (literal at `0x1000A2DC`).
+  `0x20013CF3` (literal at `0x1000A304`).
 - The magic release token is `VENT_IMPLANT_RELEASE_MAGIC`
-  (`VAULT-RELEASE-2026`) at `VENT_IMPLANT_RELEASE_MAGIC_LEN` (`18`) bytes. A
-  wrong token, a null pointer, or an attached probe leaves the vent locked.
+  (`VAULT-RELEASE-2026`) at `VENT_IMPLANT_RELEASE_MAGIC_LEN` (`18`) bytes. The
+  release path has no firmware caller, so it is dead-stripped from the shipped
+  image (the token string is absent from `ACT-VIII.bin`) and the token cannot
+  release the vent; a wrong token, a null pointer, or an attached probe likewise
+  leaves it locked.
 - Full credit requires both the byte change and a correct statement of the
   lesson: the lock is a local condition, not a cipher break, and a device that
   withholds its own function is an availability failure.
@@ -297,13 +300,13 @@ gate is at file offset `0xA311` (VA `0x1000A311`). The corrected image is:
 ```
 
 **Instruction decode.** `ldr r3, [pc, #12]` loads the mask gate address
-`0x20013CF5` (literal at `0x1000A2F0`), and `ldrb r3, [r3, #0]` reads the gate.
+`0x20013CF5` (literal at `0x1000A318`), and `ldrb r3, [r3, #0]` reads the gate.
 `and.w r0, r3, #255` stages the gate value as the return value. The branch at
 `0x1000A310` decides whether the mask may be reported. The correct code returns
 false when the mask gate is clear, so the branch at `0x1000A310` must be `cbz`
 (`0xB1`) to the `0x1000A316` return, where `r0` still holds zero. When the gate
 is set, `ldr r3, [pc, #8]` loads the locked latch at `0x20013CF3` (literal at
-`0x1000A2F4`) and returns it. `monitor_state_text` checks `implant_mask_active`
+`0x1000A31C`) and returns it. `monitor_state_text` checks `implant_mask_active`
 first and returns `MAINT` while it is true, so the LCD renders `ST:MAINT` while
 the vent is held closed. The condition byte is the high byte at `0x1000A311`.
 
@@ -402,16 +405,16 @@ control and not a cosmetic detail.
 ```
 
 **Instruction decode.** After the lock gate is armed, `ldr r0, [pc, #92]` loads
-the marker gate address `0x20013CF4` (literal at `0x1000A380`) and
-`ldrb r0, [r0, #0]` reads it at `0x1000A326`. The branch at `0x1000A352` decides
+the marker gate address `0x20013CF4` (literal at `0x1000A3A8`) and
+`ldrb r0, [r0, #0]` reads it at `0x1000A34E`. The branch at `0x1000A352` decides
 whether the marker may be written. The correct code writes no marker when the
 gate is clear, so the branch at `0x1000A352` must be `cbz` (`0xB1`) to the
 `0x1000A38E` return. When the gate is set, the reserved sector address
-`0x103FF000` is loaded (literal at `0x1000A384`) and the present marker is
+`0x103FF000` is loaded (literal at `0x1000A3AC`) and the present marker is
 checked with `cmp r3, #76` (`0x4C`). If the marker is absent, the Pico SDK flash
-sequence runs: the marker byte `0x4C` is staged at `0x1000A346`/`0x1000A34E`,
-then `flash_range_erase` at `0x1000A352` and `flash_range_program` at
-`0x1000A35E` program the sector through the veneers at `0x1000AAD8` and
+sequence runs: the marker byte `0x4C` is staged at `0x1000A34C`/`0x1000A350`,
+then `flash_range_erase` at `0x1000A37A` and `flash_range_program` at
+`0x1000A386` program the sector through the veneers at `0x1000AAD8` and
 `0x1000AAA0`. The condition byte is the high byte at `0x1000A353`.
 
 | Address | File offset | Compromised byte | Compromised instruction | Correct byte | Correct instruction |
@@ -512,13 +515,13 @@ arm-none-eabi-gdb ACT-VIII.elf
 (gdb) break implant_init
 (gdb) continue
 (gdb) set {unsigned int}0xE000EDF0 = 0
-(gdb) break *0x1000A362
+(gdb) break *0x1000A38A
 (gdb) continue
 (gdb) x/4xb 0x103FF000
 ```
 
 To observe the boot write on the compromised image, break after the flash
-program at `0x1000A362` (`msr PRIMASK, r4`) in `implant_init`, then read the
+program at `0x1000A38A` (`msr PRIMASK, r4`) in `implant_init`, then read the
 reserved sector at `0x103FF000` and confirm the first byte is `4C`. To observe
 the tick re-assertion, clear the debug bits (or patch the `ldr.w` at
 `0x1000A3C0` in a scratch copy to load a zero constant) and let `implant_tick`
@@ -528,7 +531,7 @@ at the defect.
 **Why no marker is written.** Under the compromised `cbnz`, the marker gate is
 inverted: the write path is taken when the gate is clear, so the first boot
 writes `0x4C` to `0x103FF000`. After the patch, `cbz` returns while the gate is
-clear, so the flash erase and program at `0x1000A352` and `0x1000A35E` are never
+clear, so the flash erase and program at `0x1000A37A` and `0x1000A386` are never
 reached and the sector stays blank. The marker is the durable state that re-arms
 the lock on every later boot, and the reserved sector sits outside the program
 region a firmware reflash writes, which is why the marker survives a reflash and
@@ -563,8 +566,9 @@ why the gate must be fixed in code, not only erased on the bench.
   GDB or patching the read in a scratch copy.
 - A common failure is patching the shipped artifact at `0xA353` before observing
   the marker. The order matters: defeat the anti-debug, observe, then patch.
-- On a successful release with the token the locker clears the marker; the
-  documented fix is the patch plus a reserved-sector erase, not the token.
+- The source can clear the marker on a successful token release, but the shipped
+  image dead-strips that path, so the documented fix is the patch plus a
+  reserved-sector erase, not the token.
 
 ---
 
@@ -639,11 +643,11 @@ image is:
 ```
 
 **Instruction decode.** The sealed frame is opened under the field key by
-`envelope_open_hex` at `0x1000752E`, and a malformed or too-short body is
-rejected at `0x10007532` and `0x10007538`. The command byte is checked against
-the guarded vent set by `subs r2, r4, #1` and `cmp r2, #2` at `0x10007542` and
-`0x10007544`, and the zone is checked against the `0` to `16` band by
-`cmp r3, #16` at `0x1000754A`. `vault_auth_apply` at `0x1000756C` verifies the
+`envelope_open_hex` at `0x10007552`, and a malformed or too-short body is
+rejected at `0x10007556` and `0x1000755C`. The command byte is checked against
+the guarded vent set by `subs r2, r4, #1` and `cmp r2, #2` at `0x10007566` and
+`0x10007568`, and the zone is checked against the `0` to `16` band by
+`cmp r3, #16` at `0x1000756E`. `vault_auth_apply` at `0x10007590` verifies the
 anti-replay sequence window and the authenticated-state tag and returns its
 authorization verdict in `r0`. The branch at `0x10007594` decides whether the
 command may reach the applied command and zone. The correct code rejects a failed
@@ -665,7 +669,7 @@ high byte at `0x10007595`.
 
 **Why the command now requires authorization.** Under the compromised `cbnz`, the
 verdict is inverted: a failed or replayed authorization falls through to the
-stores at `0x10007572`, while a genuine authorization branches to the reject path
+stores at `0x1000759A`, while a genuine authorization branches to the reject path
 and returns zero. After the patch, `cbz` sends a false verdict to the reject path
 at `0x100075A2`, so an unauthenticated command, a forged command, and a replayed
 captured command all fail before the command byte and zone are applied. A
@@ -832,8 +836,9 @@ Safety: Use only the supplied Pico 2, Debug Probe, and firmware. Never connect
 the exercise to an operational datacenter network, a building-management system,
 a cooling plant control system, a public network, a military system, or a
 third-party device. The locker is benign and confined to the breadboard: it
-affects only the mock vent and the mock LCD, releases on a documented token, and
-writes only the reserved sector at `0x103FF000` on the same chip. There is no
+affects only the mock vent and the mock LCD, is neutralized by the documented
+patch (its release-token path is compiled out of the shipped image), and writes
+only the reserved sector at `0x103FF000` on the same chip. There is no
 network, no filesystem, and no host impact.
 
 ### Common Student Mistakes
