@@ -134,7 +134,7 @@ and both `.uf2` images are 102,400 bytes.
 
 | Criterion | Points | Full credit | Partial credit | No credit |
 |-----------|--------|-------------|----------------|-----------|
-| **[DOCUMENT]** Located the vent lock gate at 0x1000A33B | 5 | Address and function (`implant_init`, inlined lock gate) identified | Approximate | Not found |
+| **[DOCUMENT]** Located the vent lock gate | 5 | Address and function (`implant_init`, inlined lock gate) identified | Approximate | Not found |
 | **[DOCUMENT]** Documented the forced close that holds the vent shut and lights LOCKED | 5 | Lock gate `0x20013CF2`, forced closed damper, yellow LOCKED lamp | Partial | Wrong |
 | **[DOCUMENT & PATCH]** Patched 0xBB to 0xB3 so the vent lock is not armed | 7 | Byte `0xBB` changed to `0xB3` | Wrong byte | Not patched |
 | **[DOCUMENT]** Explained why the lock forces the vent closed regardless of the authorized state | 3 | Local override beside the authenticated command path, availability as a policy control | Vague | Missing |
@@ -143,7 +143,7 @@ and both `.uf2` images are 102,400 bytes.
 
 | Criterion | Points | Full credit | Partial credit | No credit |
 |-----------|--------|-------------|----------------|-----------|
-| **[DOCUMENT]** Located the mask gate at 0x1000A311 | 5 | Address and function (`implant_mask_active`) identified | Approximate | Not found |
+| **[DOCUMENT]** Located the mask gate | 5 | Address and function (`implant_mask_active`) identified | Approximate | Not found |
 | **[DOCUMENT]** Documented the ST:MAINT maintenance mask that hides the true vent state | 5 | Mask gate `0x20013CF5`, `monitor_state_text` returns `MAINT` while locked | Partial | Wrong |
 | **[DOCUMENT & PATCH]** Patched 0xB9 to 0xB1 so the true state is never masked | 7 | Byte `0xB9` changed to `0xB1` | Wrong byte | Not patched |
 | **[DOCUMENT]** Explained why a masked state hides an availability failure | 3 | The readout is part of the attack surface and the truth is a control | Vague | Missing |
@@ -152,7 +152,7 @@ and both `.uf2` images are 102,400 bytes.
 
 | Criterion | Points | Full credit | Partial credit | No credit |
 |-----------|--------|-------------|----------------|-----------|
-| **[DOCUMENT]** Located the lock marker gate at 0x1000A353 | 5 | Address and inlined `implant_init` path identified | Approximate | Not found |
+| **[DOCUMENT]** Located the lock marker gate | 5 | Address and inlined `implant_init` path identified | Approximate | Not found |
 | **[DOCUMENT]** Documented the CoreDebug DHCSR anti-debug and how it is defeated under GDB | 5 | `0xE000EDF0`, `C_DEBUGEN` and `C_HALT`, and a real defeat method | Partial | Wrong |
 | **[DOCUMENT & PATCH]** Patched 0xB9 to 0xB1 so no lock marker is programmed to 0x103FF000 | 7 | Byte `0xB9` changed to `0xB1` | Wrong byte | Not patched |
 | **[DOCUMENT]** Explained the reserved sector 0x103FF000 and the lock marker byte 0x4C | 3 | Marker, reserved sector, write-once first run | Vague | Missing |
@@ -161,7 +161,7 @@ and both `.uf2` images are 102,400 bytes.
 
 | Criterion | Points | Full credit | Partial credit | No credit |
 |-----------|--------|-------------|----------------|-----------|
-| **[DOCUMENT]** Located the vent command authorization branch at 0x10007595 | 5 | Address and function (`control_handle_frame`) identified | Approximate | Not found |
+| **[DOCUMENT]** Located the vent command authorization branch | 5 | Address and function (`control_handle_frame`) identified | Approximate | Not found |
 | **[DOCUMENT]** Documented the authorization verdict inversion and the branch condition | 5 | Reject when the verdict is false | Partial | Wrong |
 | **[DOCUMENT & PATCH]** Patched 0xB9 to 0xB1 so failed and replayed authorizations are rejected | 7 | Byte `0xB9` changed to `0xB1` | Wrong byte | Not patched |
 | **[DOCUMENT]** Explained why an unauthenticated or replayed vent command must be rejected | 3 | The applied command must see only an authorized verdict | Vague | Missing |
@@ -183,10 +183,10 @@ and both `.uf2` images are 102,400 bytes.
 |---------|-------------|-----------|
 | Reading the vent lock gate backwards | The vent is still forced closed and the LOCKED lamp is lit | Neutralize only on the clear-gate branch (`cbz`, `0xB3`) |
 | Reading the mask gate backwards | The readout still shows `ST:MAINT` | Neutralize only when the gate is clear (`cbz`, `0xB1`) |
-| Confusing `cbz` and `cbnz` at `0xA311` or `0xA353` | The mask still lies, or the marker is still written | Neutralize only when the gate is clear (`cbz`, `0xB1`) |
-| Patching the low byte at `0xA33A`, `0xA310`, `0xA352`, or `0x7594` | The condition code never changes | Patch the high byte at `0xA33B`, `0xA311`, `0xA353`, `0x7595` |
-| Searching for a standalone `implant_infect` symbol | Cannot find the inlined gate | Look inside `implant_init` at `0xA353` |
-| Confusing the lock gate with the marker gate | Both sit in `implant_init` at `0xA33B` and `0xA353` | Patch the lock gate first, then the marker gate |
+| Confusing `cbz` and `cbnz` | The mask still lies, or the marker is still written | Neutralize only when the gate is clear (`cbz`, `0xB1`) |
+| Patching the low byte of a gate | The condition code never changes | Patch the high byte of the branch |
+| Searching for a standalone `implant_infect` symbol | Cannot find the inlined gate | Look inside `implant_init` |
+| Confusing the lock gate with the marker gate | Both sit in `implant_init` | Patch the lock gate first, then the marker gate |
 | Patching the shipped image before observing the write | You never prove the lock marker write | Defeat `DHCSR` under GDB first, then patch the artifact |
 | Fabricating the GDB session | Verification fails | Show the command sequence and the real observed code path |
 | Treating the anti-debug as a defect to patch | Wasted effort; it is identical in both images | Defeat it in a scratch copy or with GDB, then patch the real defect |

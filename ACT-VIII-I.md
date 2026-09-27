@@ -315,9 +315,9 @@ Read the actual names in `include/implant.h`, `include/ir_remote.h`, and
 
 | Bug # | Name | Severity | Description | Hint |
 |-------|------|----------|-------------|------|
-| **Bug #1** | The Vent Lock | **CRITICAL** | The lock gate is inverted, so boot arms the ransom lock, forces the vent closed, and lights the yellow LOCKED lamp. | Find the `cbz` gate in `implant_init` at `0xA33B`. |
-| **Bug #2** | The LCD Mask | **HIGH** | The mask gate is inverted, so the renderer shows `ST:MAINT` while the vent is locked. | Find the `cbz` gate in `implant_mask_active` at `0xA311`. |
-| **Bug #3** | The Lock Marker | **HIGH** | The marker gate is inverted, so the first boot programs lock marker `0x4C` into reserved sector `0x103FF000` with the real flash API. | Find the `cbz` gate in `implant_init` at `0xA353`. |
+| **Bug #1** | The Vent Lock | **CRITICAL** | The lock gate is inverted, so boot arms the ransom lock, forces the vent closed, and lights the yellow LOCKED lamp. | Find the `cbz` gate in `implant_init`. |
+| **Bug #2** | The LCD Mask | **HIGH** | The mask gate is inverted, so the renderer shows `ST:MAINT` while the vent is locked. | Find the `cbz` gate in `implant_mask_active`. |
+| **Bug #3** | The Lock Marker | **HIGH** | The marker gate is inverted, so the first boot programs lock marker `0x4C` into reserved sector `0x103FF000` with the real flash API. | Find the `cbz` gate in `implant_init`. |
 | **Bug #4** | The Vent Command Authorization | **CRITICAL** | The authorization verdict is inverted, so a failed or replayed vent command is accepted. | The correct branch rejects when authorization fails. |
 
 All four defects are same-size in-place byte patches, so no address moves.
@@ -376,7 +376,7 @@ Always call the stored entry the **reset handler**, never the reset pointer.
 ### Task 2: Bug #1 The Vent Lock (20 points)
 
 1. In Ghidra, find `implant_init` (starts at `0x1000A320`); the lock gate is
-   inlined. Locate the gate at file offset `0xA33B` (VA `0x1000A33B`).
+   inlined. Locate the gate.
 2. Document the forced close: the lock gate at `0x20013CF2`, the corrected `cbz`
    that leaves the vent alone when the gate is clear, and the compromised `cbnz`
    that arms the lock, forces `monitor_open_target` false, drives the damper
@@ -395,7 +395,7 @@ Always call the stored entry the **reset handler**, never the reset pointer.
 ### Task 3: Bug #2 The LCD Mask (20 points)
 
 1. In Ghidra, find `implant_mask_active` (starts at `0x1000A308`). Locate the
-   mask gate at file offset `0xA311` (VA `0x1000A311`).
+   mask gate.
 2. Document the mask: the mask gate at `0x20013CF5`, the corrected `cbz` that
    returns false when the gate is clear, and the compromised `cbnz` that returns
    the locked latch, so `monitor_state_text` returns `MAINT` and the LCD renders
@@ -414,8 +414,7 @@ Always call the stored entry the **reset handler**, never the reset pointer.
 ### Task 4: Bug #3 The Lock Marker (20 points)
 
 1. The `implant_infect` path is inlined into `implant_init` (starts at
-   `0x1000A320`). Locate the marker gate at file offset `0xA353`
-   (VA `0x1000A353`).
+   `0x1000A320`). Locate the marker gate.
 2. Document the CoreDebug `DHCSR` anti-debug and how you defeat it to observe
    the marker. Clear the debug bits with GDB (for example with
    `set {unsigned int}0xE000EDF0 = 0`) or patch the `DHCSR` read in a scratch
@@ -435,9 +434,7 @@ Always call the stored entry the **reset handler**, never the reset pointer.
 ### Task 5: Bug #4 The Vent Command Authorization (20 points)
 
 1. In Ghidra, find `control_handle_frame` (starts at `0x10007528`) and locate
-   the authorization branch at file offset `0x7595` (VA `0x10007595`). The
-   branch halfword begins at `0x10007594`; the condition byte is the high byte at
-   `0x10007595`.
+   the authorization branch. The condition byte is the high byte of the branch halfword.
 2. Document the authorization verdict and the exact branch condition that is
    supposed to reject a failed or replayed authorization.
 3. Patch the byte so an unauthenticated or replayed vent command is rejected
