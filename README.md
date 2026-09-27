@@ -91,7 +91,9 @@ with a Debug Probe.
 | 4 | The Vent Command Authorization | inverted the authorization verdict so an unauthenticated or replayed vent command is accepted |
 
 The wire is sealed with XChaCha20-Poly1305, keyed through Argon2id. The
-cryptography is correct. Three of the four defects are not in the cipher at all:
+primitives are standard and correctly implemented, but the field passphrase and
+salt are compiled into the image in cleartext, so this is a lab-only key and not
+a secrecy guarantee. Three of the four defects are not in the cipher at all:
 they are a locker that forces the vent closed, masks its own state as routine
 maintenance, and writes a durable lock marker to the reserved sector. The fourth
 is a policy seam in the vent command path. The locker never needs the cipher. It

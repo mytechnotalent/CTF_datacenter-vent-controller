@@ -166,6 +166,13 @@ and both `.uf2` images are 102,400 bytes.
 | **[DOCUMENT & PATCH]** Patched 0xB9 to 0xB1 so failed and replayed authorizations are rejected | 7 | Byte `0xB9` changed to `0xB1` | Wrong byte | Not patched |
 | **[DOCUMENT]** Explained why an unauthenticated or replayed vent command must be rejected | 3 | The applied command must see only an authorized verdict | Vague | Missing |
 
+> **Accuracy note.** The corrected image rejects a replayed frame only within a
+> power session. The window lives in `.bss` and `vault_auth_init` zeroes
+> `last_seq` at boot, so a captured frame with `seq >= 1` is still accepted after
+> a power cycle. The stored state tag is a deterministic MAC over
+> `(GRANT, seq, last_seq=seq)`, and `vault_auth_state_ok` has no firmware caller,
+> so the tag never gates apply.
+
 ### Task 6: Export and Verify (10 points)
 
 | Criterion | Points | Full credit | Partial credit | No credit |
